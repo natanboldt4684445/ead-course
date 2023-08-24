@@ -1,10 +1,13 @@
 package com.ead.course.clients;
 
+import com.ead.course.dtos.CourseUserDto;
 import com.ead.course.dtos.ResponsePageDto;
 import com.ead.course.dtos.UserDto;
+import com.ead.course.models.CourseModel;
 import com.ead.course.services.UtilsService;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,7 +21,7 @@ import java.util.UUID;
 
 @Log4j2
 @Component
-public class CourseClient {
+public class AuthUserClient {
 
     @Autowired
     RestTemplate restTemplate;
@@ -26,9 +29,12 @@ public class CourseClient {
     @Autowired
     UtilsService utilsService;
 
+    @Value("${ead.api.url.authuser}")
+    String REQUEST_URL_AUTHUSER;
+
     public Page<UserDto> getAllUsersByCourse(UUID courseId, Pageable pageable) {
         ResponseEntity<ResponsePageDto<UserDto>> result = null;
-        String url = utilsService.createUrl(courseId, pageable);
+        String url = REQUEST_URL_AUTHUSER+utilsService.createUrlGetAllUsersByCourse(courseId, pageable);
         log.debug("Request URL: {} ", url);
         log.info("Request URL: {} ", url);
 
@@ -44,4 +50,23 @@ public class CourseClient {
         return result.getBody();
     }
 
+    public ResponseEntity<UserDto> getOneUserById(UUID userId) {
+        String url = REQUEST_URL_AUTHUSER + "/users/" + userId;
+        log.debug("Request URL: {} ", url);
+        log.info("Request URL: {} ", url);
+
+        return restTemplate.exchange(url, HttpMethod.GET, null, UserDto.class);
+    }
+
+    public CourseUserDto postSubscriptionUserInCourse(CourseModel courseModel, UUID userId) {
+        String url = REQUEST_URL_AUTHUSER + "/users/" + userId + "/courses/subscription";
+        CourseUserDto courseUserDto = new CourseUserDto();
+        courseUserDto.setCourseId(courseModel.getCourseId());
+        courseUserDto.setUserId(userId);
+
+        log.debug("Request URL: {} ", url);
+        log.info("Request URL: {} ", url);
+
+        return restTemplate.postForObject(url, courseUserDto, CourseUserDto.class);
+    }
 }
