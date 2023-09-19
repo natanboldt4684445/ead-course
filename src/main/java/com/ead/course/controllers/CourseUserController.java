@@ -2,6 +2,7 @@ package com.ead.course.controllers;
 
 
 import com.ead.course.clients.AuthUserClient;
+import com.ead.course.dtos.CourseDto;
 import com.ead.course.dtos.SubscriptionDto;
 import com.ead.course.dtos.UserDto;
 import com.ead.course.enums.UserStatus;
@@ -37,12 +38,16 @@ public class CourseUserController {
     @Autowired
     CourseUserService courseUserService;
 
-    @GetMapping("courses/{courseId}/users")
-    public ResponseEntity<Page<UserDto>> getAllUsersByCourse(@PathVariable(value = "courseId") UUID courseId, @PageableDefault(sort = "userId") Pageable pageable) {
+    @GetMapping("/courses/{courseId}/users")
+    public ResponseEntity<Object> getAllUsersByCourse(@PathVariable(value = "courseId") UUID courseId, @PageableDefault(sort = "userId") Pageable pageable) {
+        Optional<CourseModel> optionalCourseModel = courseService.findById(courseId);
+        if (!optionalCourseModel.isPresent()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Course Not Found.");
+        }
         return ResponseEntity.ok().body(authUserClient.getAllUsersByCourse(courseId, pageable));
     }
 
-    @PostMapping("courses/{courseId}/users/subscription")
+    @PostMapping("/courses/{courseId}/users/subscription")
     public ResponseEntity<Object> saveSubscriptionUserInCourse(@PathVariable(value = "courseId") UUID courseId, @RequestBody @Valid SubscriptionDto subscriptionDto) {
         Optional<CourseModel> courseModelOptional = courseService.findById(courseId);
         ResponseEntity<UserDto> userDtoResponseEntity = null;
@@ -65,5 +70,16 @@ public class CourseUserController {
 
         CourseUserModel courseUserModel = courseUserService.saveAndSendSubscriptionUserInCourse(courseModelOptional.get().convertToCourseUserModel(subscriptionDto.getUserId()));
         return ResponseEntity.status(HttpStatus.CREATED).body(courseUserModel);
+    }
+
+    @DeleteMapping("/courses/users/{userId}")
+    public ResponseEntity<Object> deleteCourseUserByUserId (@PathVariable(value = "userId") UUID userId) {
+        if(!courseUserService.existByUserId(userId)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("CourseUser Not Found.");
+        }
+
+        courseUserService.deleteByUserId(userId);
+        return ResponseEntity.ok().body("CourseUser deleted successfully");
+
     }
 }
